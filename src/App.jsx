@@ -1,30 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import Sidebar from './components/Sidebar';
-import Toolbar from './components/Toolbar';
-import MapCanvas from './components/MapCanvas';
-import { calculatePolygonArea } from './utils/geoUtils';
-import { CheckCircle, AlertCircle, Info, X } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import Sidebar from "./components/Sidebar";
+import Toolbar from "./components/Toolbar";
+import MapCanvas from "./components/MapCanvas";
+import { calculatePolygonArea } from "./utils/geoUtils";
+import { CheckCircle, AlertCircle, Info, X, Moon, Sun } from "lucide-react";
 
 export default function App() {
   // App layouts
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  
+
   // Unified GIS State
   const [gisState, setGisState] = useState({
     markers: [],
     polygon: [],
-    mode: 'idle' // 'idle' | 'add-marker' | 'draw-polygon'
+    mode: "idle", // 'idle' | 'add-marker' | 'draw-polygon'
   });
-  
+
   // Track whether the active polygon is closed/finished
   const [isPolygonFinished, setIsPolygonFinished] = useState(true);
-  
+
   // Metadata States
   const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
-  const [mapboxTokenStatus] = useState(mapboxToken ? 'configured' : 'fallback');
+  const [mapboxTokenStatus] = useState(mapboxToken ? "configured" : "fallback");
   const [toast, setToast] = useState(null);
   const [focusedMarker, setFocusedMarker] = useState(null);
   const [fitViewTrigger, setFitViewTrigger] = useState(0);
+  const [theme, setTheme] = useState("dark");
+  const isDarkTheme = theme === "dark";
 
   // Auto-dismiss toast logic
   useEffect(() => {
@@ -36,7 +38,7 @@ export default function App() {
   }, [toast]);
 
   // Show status changes or alerts
-  const showToast = (message, type = 'info') => {
+  const showToast = (message, type = "info") => {
     setToast({ message, type });
   };
 
@@ -44,19 +46,19 @@ export default function App() {
   const setMode = (newMode) => {
     setGisState((prev) => {
       let updatedPolygon = [...prev.polygon];
-      
-      if (newMode === 'draw-polygon') {
+
+      if (newMode === "draw-polygon") {
         // If they enter draw-polygon mode, and the current polygon is unfinished,
         // clear it because they are starting a new polygon drawing session.
         if (!isPolygonFinished) {
           updatedPolygon = [];
         }
       }
-      
+
       return {
         ...prev,
         mode: newMode,
-        polygon: updatedPolygon
+        polygon: updatedPolygon,
       };
     });
   };
@@ -68,13 +70,16 @@ export default function App() {
         id: `marker-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         name: `Marker #${prev.markers.length + 1}`,
         lat,
-        lng
+        lng,
       };
       // Trigger side-effect toast
-      setTimeout(() => showToast(`Placed ${newMarker.name} at coordinates`, 'success'), 0);
+      setTimeout(
+        () => showToast(`Placed ${newMarker.name} at coordinates`, "success"),
+        0,
+      );
       return {
         ...prev,
-        markers: [...prev.markers, newMarker]
+        markers: [...prev.markers, newMarker],
       };
     });
   };
@@ -84,17 +89,17 @@ export default function App() {
     setGisState((prev) => {
       const target = prev.markers.find((m) => m.id === id);
       if (target) {
-        setTimeout(() => showToast(`Removed ${target.name}`, 'info'), 0);
+        setTimeout(() => showToast(`Removed ${target.name}`, "info"), 0);
       }
       const updatedMarkers = prev.markers.filter((m) => m.id !== id);
       // Re-index remaining marker names for consistency
       const reindexedMarkers = updatedMarkers.map((m, index) => ({
         ...m,
-        name: `Marker #${index + 1}`
+        name: `Marker #${index + 1}`,
       }));
       return {
         ...prev,
-        markers: reindexedMarkers
+        markers: reindexedMarkers,
       };
     });
   };
@@ -102,7 +107,7 @@ export default function App() {
   // Focus Map on Marker
   const focusMarker = (marker) => {
     setFocusedMarker(marker);
-    showToast(`Centering map on ${marker.name}`, 'info');
+    showToast(`Centering map on ${marker.name}`, "info");
     // Clear trigger after click resolves
     setTimeout(() => setFocusedMarker(null), 1000);
   };
@@ -111,19 +116,23 @@ export default function App() {
   const addPolygonVertex = (coord) => {
     setGisState((prev) => {
       let currentPolygon = [...prev.polygon];
-      
+
       // If we had a finished polygon and we click the map to draw, clear it first
       // to start drawing a new polygon.
       if (isPolygonFinished) {
         currentPolygon = [];
         setIsPolygonFinished(false);
       }
-      
+
       const newPolygon = [...currentPolygon, coord];
-      setTimeout(() => showToast(`Added vertex #${newPolygon.length} to boundary`, 'info'), 0);
+      setTimeout(
+        () =>
+          showToast(`Added vertex #${newPolygon.length} to boundary`, "info"),
+        0,
+      );
       return {
         ...prev,
-        polygon: newPolygon
+        polygon: newPolygon,
       };
     });
   };
@@ -134,7 +143,7 @@ export default function App() {
     setIsPolygonFinished(true);
     setGisState((prev) => ({
       ...prev,
-      mode: 'idle'
+      mode: "idle",
     }));
     showToast("Polygon finished and area calculated!", "success");
   };
@@ -143,7 +152,7 @@ export default function App() {
   const clearPolygon = () => {
     setGisState((prev) => ({
       ...prev,
-      polygon: []
+      polygon: [],
     }));
     setIsPolygonFinished(true);
     showToast("Polygon boundaries cleared", "info");
@@ -154,7 +163,7 @@ export default function App() {
     setGisState({
       markers: [],
       polygon: [],
-      mode: 'idle'
+      mode: "idle",
     });
     setIsPolygonFinished(true);
     showToast("Cleared all canvas layers", "info");
@@ -167,9 +176,9 @@ export default function App() {
         markers: gisState.markers,
         polygon: gisState.polygon,
         mode: gisState.mode,
-        isPolygonFinished
+        isPolygonFinished,
       };
-      localStorage.setItem('gis_state', JSON.stringify(stateToSave));
+      localStorage.setItem("gis_state", JSON.stringify(stateToSave));
       showToast("GIS state saved to local storage", "success");
     } catch (err) {
       console.error(err);
@@ -180,15 +189,19 @@ export default function App() {
   // Load Saved state from LocalStorage
   const loadData = () => {
     try {
-      const saved = localStorage.getItem('gis_state');
+      const saved = localStorage.getItem("gis_state");
       if (saved) {
         const parsed = JSON.parse(saved);
         setGisState({
           markers: parsed.markers || [],
           polygon: parsed.polygon || [],
-          mode: parsed.mode || 'idle'
+          mode: parsed.mode || "idle",
         });
-        setIsPolygonFinished(parsed.isPolygonFinished !== undefined ? parsed.isPolygonFinished : true);
+        setIsPolygonFinished(
+          parsed.isPolygonFinished !== undefined
+            ? parsed.isPolygonFinished
+            : true,
+        );
         showToast("GIS state successfully loaded", "success");
       } else {
         showToast("No saved GIS state found", "error");
@@ -200,13 +213,15 @@ export default function App() {
   };
 
   // Compute active geodesic polygon area using Turf.js in geoUtils.js
-  const area = (isPolygonFinished && gisState.polygon.length >= 3)
-    ? calculatePolygonArea(gisState.polygon)
-    : 0;
+  const area =
+    isPolygonFinished && gisState.polygon.length >= 3
+      ? calculatePolygonArea(gisState.polygon)
+      : 0;
 
   return (
-    <div className="relative w-screen h-screen bg-[#060814] flex text-slate-100 overflow-hidden">
-      
+    <div
+      className={`relative w-screen h-screen flex overflow-hidden ${isDarkTheme ? "bg-[#060814] text-slate-100" : "bg-slate-100 text-slate-900"}`}
+    >
       {/* Sidebar - Collapsible & floating on mobile */}
       <Sidebar
         isOpen={sidebarOpen}
@@ -219,15 +234,15 @@ export default function App() {
         clearPolygon={clearPolygon}
         isPolygonFinished={isPolygonFinished}
         area={area}
+        isDarkTheme={isDarkTheme}
       />
 
       {/* Main Content Area */}
-      <div 
+      <div
         className={`flex-1 h-full flex flex-col relative transition-all duration-300 ${
-          sidebarOpen ? 'md:ml-[300px]' : 'ml-0'
+          sidebarOpen ? "md:ml-[300px]" : "ml-0"
         }`}
       >
-        
         {/* Floating Top Header / Toolbar */}
         <header className="absolute top-4 left-4 right-4 z-20 pointer-events-none">
           <div className="max-w-4xl mx-auto pointer-events-auto">
@@ -241,6 +256,10 @@ export default function App() {
               loadData={loadData}
               mapboxTokenStatus={mapboxTokenStatus}
               triggerFitView={() => setFitViewTrigger((prev) => prev + 1)}
+              isDarkTheme={isDarkTheme}
+              toggleTheme={() =>
+                setTheme((prev) => (prev === "dark" ? "light" : "dark"))
+              }
             />
           </div>
         </header>
@@ -265,14 +284,21 @@ export default function App() {
       {toast && (
         <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-5 duration-300">
           <div className="relative bg-slate-950/90 backdrop-blur-xl border border-slate-800 rounded-xl p-4 shadow-2xl flex items-center space-x-3 max-w-sm">
-            
             {/* Status Type Icon */}
-            {toast.type === 'success' && <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />}
-            {toast.type === 'error' && <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />}
-            {toast.type === 'info' && <Info className="w-5 h-5 text-indigo-400 shrink-0" />}
+            {toast.type === "success" && (
+              <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
+            )}
+            {toast.type === "error" && (
+              <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+            )}
+            {toast.type === "info" && (
+              <Info className="w-5 h-5 text-indigo-400 shrink-0" />
+            )}
 
             {/* Content text */}
-            <p className="text-xs font-medium text-slate-200 pr-4">{toast.message}</p>
+            <p className="text-xs font-medium text-slate-200 pr-4">
+              {toast.message}
+            </p>
 
             {/* Manual Dismiss */}
             <button
@@ -284,13 +310,16 @@ export default function App() {
 
             {/* Progress countdown indicator */}
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-800 rounded-b-xl overflow-hidden">
-              <div 
+              <div
                 className={`h-full transition-all duration-4000 ease-linear ${
-                  toast.type === 'success' ? 'bg-emerald-500' :
-                  toast.type === 'error' ? 'bg-rose-500' : 'bg-indigo-500'
+                  toast.type === "success"
+                    ? "bg-emerald-500"
+                    : toast.type === "error"
+                      ? "bg-rose-500"
+                      : "bg-indigo-500"
                 }`}
                 style={{
-                  animation: 'shrink 4s linear forwards',
+                  animation: "shrink 4s linear forwards",
                 }}
               />
             </div>
