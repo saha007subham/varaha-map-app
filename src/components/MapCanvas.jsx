@@ -2,6 +2,11 @@ import React, { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { Globe } from "lucide-react";
 
+// Initialize Mapbox Access Token synchronously at file load time
+const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+
+mapboxgl.accessToken = token;
+
 export default function MapCanvas({
   mode,
   markers,
@@ -21,7 +26,7 @@ export default function MapCanvas({
 
   const [mapLoaded, setMapLoaded] = useState(false);
 
-  // Bottom-left Map HUD coordinates status state
+  // Bottom-left Map HUD coordinates status status state
   const [mapStatus, setMapStatus] = useState({
     lat: 12.9716,
     lng: 77.5946,
@@ -39,25 +44,12 @@ export default function MapCanvas({
     addPolygonVertexRef.current = addPolygonVertex;
   }, [addPolygonVertex]);
 
-  // Initialize Mapbox Token
-  const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
-  useEffect(() => {
-    if (token) {
-      mapboxgl.accessToken = token;
-      setMapboxTokenStatus("configured");
-    } else {
-      mapboxgl.accessToken =
-        "pk.eyJ1IjoiYW50aWdyYXZpdHktZHVtbXkiLCJhIjoiY2x0MTIzNDU2Nzh5MDk5a3ZtcmxsIn0.placeholder";
-      setMapboxTokenStatus("fallback");
-    }
-  }, [token, setMapboxTokenStatus]);
-
   // Create Map Instance
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
     const mapStyle = token
-      ? "mapbox://styles/mapbox/dark-v11"
+      ? "mapbox://styles/mapbox/streets-v12"
       : {
           version: 8,
           sources: {
@@ -170,7 +162,7 @@ export default function MapCanvas({
       map.remove();
       mapRef.current = null;
     };
-  }, [token, setMapboxTokenStatus]);
+  }, []);
 
   // Keep interaction mode reference updated for the click handler
   useEffect(() => {
@@ -350,6 +342,8 @@ export default function MapCanvas({
       duration: 1200,
     });
   }, [fitViewTrigger, markers, polygon]);
+
+  console.log(import.meta.env.VITE_MAPBOX_ACCESS_TOKEN);
 
   return (
     <div className="relative w-full h-full">

@@ -20,7 +20,8 @@ export default function App() {
   const [isPolygonFinished, setIsPolygonFinished] = useState(true);
   
   // Metadata States
-  const [mapboxTokenStatus, setMapboxTokenStatus] = useState('configured'); // 'configured' | 'fallback'
+  const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+  const [mapboxTokenStatus] = useState(mapboxToken ? 'configured' : 'fallback');
   const [toast, setToast] = useState(null);
   const [focusedMarker, setFocusedMarker] = useState(null);
   const [fitViewTrigger, setFitViewTrigger] = useState(0);
@@ -254,7 +255,6 @@ export default function App() {
             addPolygonVertex={addPolygonVertex}
             focusedMarker={focusedMarker}
             isPolygonFinished={isPolygonFinished}
-            setMapboxTokenStatus={setMapboxTokenStatus}
             mapboxTokenStatus={mapboxTokenStatus}
             fitViewTrigger={fitViewTrigger}
           />
