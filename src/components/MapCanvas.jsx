@@ -35,6 +35,8 @@ export default function MapCanvas({
 
   const addMarkerRef = useRef(addMarker);
   const addPolygonVertexRef = useRef(addPolygonVertex);
+  const markersRefForFit = useRef(markers);
+  const polygonRefForFit = useRef(polygon);
 
   useEffect(() => {
     addMarkerRef.current = addMarker;
@@ -43,6 +45,14 @@ export default function MapCanvas({
   useEffect(() => {
     addPolygonVertexRef.current = addPolygonVertex;
   }, [addPolygonVertex]);
+
+  useEffect(() => {
+    markersRefForFit.current = markers;
+  }, [markers]);
+
+  useEffect(() => {
+    polygonRefForFit.current = polygon;
+  }, [polygon]);
 
   // Create Map Instance
   useEffect(() => {
@@ -328,8 +338,8 @@ export default function MapCanvas({
     if (!mapRef.current || fitViewTrigger === 0) return;
 
     const points = [];
-    markers.forEach((m) => points.push([m.lng, m.lat]));
-    polygon.forEach((coord) => points.push(coord));
+    markersRefForFit.current.forEach((m) => points.push([m.lng, m.lat]));
+    polygonRefForFit.current.forEach((coord) => points.push(coord));
 
     if (points.length === 0) return;
 
@@ -341,7 +351,7 @@ export default function MapCanvas({
       maxZoom: 15,
       duration: 1200,
     });
-  }, [fitViewTrigger, markers, polygon]);
+  }, [fitViewTrigger]);
 
   console.log(import.meta.env.VITE_MAPBOX_ACCESS_TOKEN);
 
