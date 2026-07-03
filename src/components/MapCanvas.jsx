@@ -4,8 +4,74 @@ import { Globe } from "lucide-react";
 
 // Initialize Mapbox Access Token synchronously at file load time
 const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
-
 mapboxgl.accessToken = token;
+
+/**
+ * Dynamically resolves the Mapbox Vector or CartoDB Raster style block
+ * based on theme (Light/Dark) and token configuration.
+ *
+ * @param {boolean} isDark - True if dark theme is active
+ * @param {boolean} hasToken - True if VITE_MAPBOX_ACCESS_TOKEN exists
+ * @returns {string|object} Mapbox style URL or custom Raster style definition
+ */
+const getStyleDefinition = (isDark, hasToken) => {
+  if (hasToken) {
+    return isDark
+      ? "mapbox://styles/mapbox/streets-v12"
+      : "mapbox://styles/mapbox/streets-v12";
+  } else {
+    // Custom styled raster tiles for high-quality open-source fallback basemaps
+    return isDark
+      ? {
+          version: 8,
+          sources: {
+            "osm-tiles": {
+              type: "raster",
+              tiles: [
+                "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+                "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+                "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+              ],
+              tileSize: 256,
+              attribution: "© OpenStreetMap contributors, © CartoDB",
+            },
+          },
+          layers: [
+            {
+              id: "osm-tiles",
+              type: "raster",
+              source: "osm-tiles",
+              minzoom: 0,
+              maxzoom: 19,
+            },
+          ],
+        }
+      : {
+          version: 8,
+          sources: {
+            "osm-tiles": {
+              type: "raster",
+              tiles: [
+                "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+                "https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+                "https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+              ],
+              tileSize: 256,
+              attribution: "© OpenStreetMap contributors, © CartoDB",
+            },
+          },
+          layers: [
+            {
+              id: "osm-tiles",
+              type: "raster",
+              source: "osm-tiles",
+              minzoom: 0,
+              maxzoom: 19,
+            },
+          ],
+        };
+  }
+};
 
 export default function MapCanvas({
   mode,
@@ -16,7 +82,6 @@ export default function MapCanvas({
   focusedMarker,
   isPolygonFinished,
   isDarkTheme,
-  setMapboxTokenStatus,
   mapboxTokenStatus,
   fitViewTrigger,
 }) {
@@ -26,8 +91,9 @@ export default function MapCanvas({
   const polygonMarkersRef = useRef([]); // Store temporary vertex dots
 
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [polygonSyncTrigger, setPolygonSyncTrigger] = useState(0);
 
-  // Bottom-left Map HUD coordinates status status state
+  // Bottom-left Map HUD coordinates status state
   const [mapStatus, setMapStatus] = useState({
     lat: 12.9716,
     lng: 77.5946,
@@ -55,40 +121,19 @@ export default function MapCanvas({
     polygonRefForFit.current = polygon;
   }, [polygon]);
 
-  // Create Map Instance
+  // Track map style to skip redundant setStyle calls
+  const currentStyleRef = useRef(getStyleDefinition(isDarkTheme, !!token));
+
+  // Create Map Instance exactly once on mount
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
-    const mapStyle = token
-      ? "mapbox://styles/mapbox/streets-v12"
-      : {
-          version: 8,
-          sources: {
-            "osm-tiles": {
-              type: "raster",
-              tiles: [
-                "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
-              ],
-              tileSize: 256,
-              attribution: "© OpenStreetMap contributors",
-            },
-          },
-          layers: [
-            {
-              id: "osm-tiles",
-              type: "raster",
-              source: "osm-tiles",
-              minzoom: 0,
-              maxzoom: 19,
-            },
-          ],
-        };
+    // Initialize using correct theme immediately on load
+    const initialStyle = getStyleDefinition(isDarkTheme, !!token);
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
-      style: mapStyle,
+      style: initialStyle,
       center: [77.5946, 12.9716], // Bangalore default center
       zoom: 11,
       attributionControl: true,
@@ -113,38 +158,46 @@ export default function MapCanvas({
 
     map.on("load", () => {
       setMapLoaded(true);
+    });
 
-      // Create empty sources for Polygon layers
-      map.addSource("polygon-data", {
-        type: "geojson",
-        data: {
-          type: "FeatureCollection",
-          features: [],
-        },
-      });
+    // Re-bind GeoJSON polygon sources & layers dynamically on style load events.
+    // (setStyle drops custom style layers & sources from the map canvas structure)
+    map.on("style.load", () => {
+      if (!map.getSource("polygon-data")) {
+        map.addSource("polygon-data", {
+          type: "geojson",
+          data: {
+            type: "FeatureCollection",
+            features: [],
+          },
+        });
 
-      // Fill layer for closed Polygon
-      map.addLayer({
-        id: "polygon-fill",
-        type: "fill",
-        source: "polygon-data",
-        paint: {
-          "fill-color": "#818cf8",
-          "fill-opacity": 0.2,
-        },
-        filter: ["==", "$type", "Polygon"],
-      });
+        // Fill layer for closed Polygon
+        map.addLayer({
+          id: "polygon-fill",
+          type: "fill",
+          source: "polygon-data",
+          paint: {
+            "fill-color": "#818cf8",
+            "fill-opacity": 0.2,
+          },
+          filter: ["==", "$type", "Polygon"],
+        });
 
-      // Border outline (for both open line segments and closed polygon boundaries)
-      map.addLayer({
-        id: "polygon-stroke",
-        type: "line",
-        source: "polygon-data",
-        paint: {
-          "line-color": "#6366f1",
-          "line-width": 3,
-        },
-      });
+        // Border outline
+        map.addLayer({
+          id: "polygon-stroke",
+          type: "line",
+          source: "polygon-data",
+          paint: {
+            "line-color": "#6366f1",
+            "line-width": 3,
+          },
+        });
+      }
+
+      // Signal the polygon sync effect to re-inject coordinates
+      setPolygonSyncTrigger((prev) => prev + 1);
     });
 
     // Click handler for interaction modes
@@ -174,6 +227,25 @@ export default function MapCanvas({
       mapRef.current = null;
     };
   }, []);
+
+  // Update existing map style using setStyle() when theme state changes
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded) return;
+
+    const targetStyle = getStyleDefinition(isDarkTheme, !!token);
+
+    // Compare style configurations to skip redundant updates
+    const hasStyleChanged =
+      typeof targetStyle === "string"
+        ? currentStyleRef.current !== targetStyle
+        : JSON.stringify(currentStyleRef.current) !==
+          JSON.stringify(targetStyle);
+
+    if (hasStyleChanged) {
+      mapRef.current.setStyle(targetStyle);
+      currentStyleRef.current = targetStyle;
+    }
+  }, [isDarkTheme, mapLoaded]);
 
   // Keep interaction mode reference updated for the click handler
   useEffect(() => {
@@ -322,7 +394,7 @@ export default function MapCanvas({
         polygonMarkersRef.current.push(markerInstance);
       });
     }
-  }, [polygon, isPolygonFinished, mapLoaded]);
+  }, [polygon, isPolygonFinished, mapLoaded, polygonSyncTrigger]);
 
   // Fly to target marker when focused
   useEffect(() => {
@@ -354,17 +426,31 @@ export default function MapCanvas({
     });
   }, [fitViewTrigger]);
 
-  console.log(import.meta.env.VITE_MAPBOX_ACCESS_TOKEN);
-
   return (
     <div className="relative w-full h-full">
       {/* Map Loading State screen overlay */}
       {!mapLoaded && (
-        <div className="absolute inset-0 bg-slate-950/95 z-30 flex flex-col items-center justify-center space-y-4 transition-all duration-300">
+        <div
+          className={`absolute inset-0 z-30 flex flex-col items-center justify-center space-y-4 transition-all duration-300 ${
+            isDarkTheme
+              ? "bg-slate-950/95 text-slate-300"
+              : "bg-slate-50/95 text-slate-700"
+          }`}
+        >
           <div className="relative w-12 h-12 flex items-center justify-center">
-            <div className="absolute inset-0 rounded-full border-4 border-indigo-500/20 border-t-indigo-400 animate-spin"></div>
+            <div
+              className={`absolute inset-0 rounded-full border-4 ${
+                isDarkTheme
+                  ? "border-indigo-500/20 border-t-indigo-400"
+                  : "border-indigo-500/10 border-t-indigo-500"
+              } animate-spin`}
+            ></div>
           </div>
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest animate-pulse">
+          <p
+            className={`text-xs font-semibold uppercase tracking-widest animate-pulse ${
+              isDarkTheme ? "text-slate-400" : "text-slate-500"
+            }`}
+          >
             Initializing GIS Sandbox...
           </p>
         </div>
@@ -380,8 +466,13 @@ export default function MapCanvas({
         </div>
       )}
 
-      {/* Target Canvas Container */}
-      <div ref={mapContainerRef} className="w-full h-full" />
+      {/* Target Canvas Container with theme-aware background to prevent flashing */}
+      <div
+        ref={mapContainerRef}
+        className={`w-full h-full transition-colors duration-300 ${
+          isDarkTheme ? "bg-slate-950" : "bg-slate-100"
+        }`}
+      />
 
       {/* Bottom-left Map HUD coordinates status bar */}
       <div
