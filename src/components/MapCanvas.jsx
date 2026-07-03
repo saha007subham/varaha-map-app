@@ -85,6 +85,8 @@ export default function MapCanvas({
   mapboxTokenStatus,
   fitViewTrigger,
 }) {
+  console.log("Mapbox Token:", import.meta.env.VITE_MAPBOX_ACCESS_TOKEN);
+
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef({}); // Store active mapboxgl.Marker instances by ID
