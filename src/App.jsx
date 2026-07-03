@@ -10,8 +10,11 @@ import {
 import { CheckCircle, AlertCircle, Info, X, Moon, Sun } from "lucide-react";
 
 export default function App() {
-  // App layouts
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // App layouts - sidebar closed by default on mobile
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.innerWidth >= 768; // md breakpoint is 768px in Tailwind
+  });
 
   // Unified GIS State
   const [gisState, setGisState] = useState({
