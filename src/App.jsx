@@ -25,8 +25,23 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [focusedMarker, setFocusedMarker] = useState(null);
   const [fitViewTrigger, setFitViewTrigger] = useState(0);
-  const [theme, setTheme] = useState("dark");
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === "undefined") return "dark";
+    try {
+      return localStorage.getItem("varaha-theme") || "dark";
+    } catch (err) {
+      return "dark";
+    }
+  });
   const isDarkTheme = theme === "dark";
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("varaha-theme", theme);
+    } catch (err) {
+      // ignore storage errors in unsupported environments
+    }
+  }, [theme]);
 
   // Auto-dismiss toast logic
   useEffect(() => {
