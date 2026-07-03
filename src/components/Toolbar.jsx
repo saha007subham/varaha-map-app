@@ -154,17 +154,6 @@ export default function Toolbar({
           <FolderOpen className="w-3.5 h-3.5 text-indigo-400" />
           <span>Load</span>
         </button>
-
-        <div className="w-px h-6 bg-slate-800 mx-1 hidden sm:block shrink-0"></div>
-
-        <button
-          onClick={clearAll}
-          className="flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20 hover:border-rose-500/40 transition-all active:scale-95 shrink-0 cursor-pointer"
-          title="Clear all map objects"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-          <span>Clear All</span>
-        </button>
       </div>
 
       {/* Mapbox Token warning/status */}
@@ -183,6 +172,15 @@ export default function Toolbar({
           </div>
         )}
       </div>
+
+      <button
+        onClick={clearAll}
+        className="flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20 hover:border-rose-500/40 transition-all active:scale-95 shrink-0 cursor-pointer"
+        title="Clear all map objects"
+      >
+        <Trash2 className="w-3.5 h-3.5" />
+        <span>Clear All</span>
+      </button>
     </div>
   );
 }

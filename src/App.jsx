@@ -259,8 +259,8 @@ export default function App() {
         }`}
       >
         {/* Floating Top Header / Toolbar */}
-        <header className="absolute top-4 left-4 right-4 z-20 pointer-events-none">
-          <div className="max-w-4xl mx-auto pointer-events-auto">
+        <header className="absolute top-20 md:top-4 left-4 right-4 z-20 pointer-events-none">
+          <div className="max-w-5xl mx-auto pointer-events-auto">
             <Toolbar
               mode={gisState.mode}
               setMode={setMode}
