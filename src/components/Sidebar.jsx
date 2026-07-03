@@ -81,10 +81,10 @@ export default function Sidebar({
 
   return (
     <>
-      {/* Sidebar toggle button (Mobile & floating tab) */}
+      {/* Sidebar toggle button (Mobile, tablet, and below 1300px) */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`fixed top-4 z-40 p-2.5 rounded-lg border transition-all shadow-xl md:hidden ${
+        className={`fixed top-4 z-40 p-2.5 rounded-lg border transition-all shadow-xl hidden max-[1300px]:inline-flex ${
           isDarkTheme
             ? "bg-slate-900/90 border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800"
             : "bg-white/90 border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-100"
@@ -100,10 +100,10 @@ export default function Sidebar({
 
       {/* Main Sidebar Panel */}
       <div
-        className={`fixed top-0 bottom-0 left-0 z-30 w-[300px] backdrop-blur-xl border-r flex flex-col transition-transform duration-300 ease-in-out md:translate-x-0 ${
+        className={`fixed top-0 bottom-0 left-0 z-30 w-[300px] backdrop-blur-xl border-r flex flex-col transition-transform duration-300 ease-in-out min-[1301px]:translate-x-0 ${
           isDarkTheme
-            ? "bg-slate-950/95 md:bg-slate-950/80 border-slate-900 text-slate-100"
-            : "bg-white/85 md:bg-white/80 border-slate-200 text-slate-700"
+            ? "bg-slate-950/95 min-[1301px]:bg-slate-950/80 border-slate-900 text-slate-100"
+            : "bg-white/85 min-[1301px]:bg-white/80 border-slate-200 text-slate-700"
         } ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         {/* Header Branding */}

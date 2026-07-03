@@ -275,6 +275,8 @@ export default function App() {
               toggleTheme={() =>
                 setTheme((prev) => (prev === "dark" ? "light" : "dark"))
               }
+              sidebarOpen={sidebarOpen}
+              toggleSidebar={() => setSidebarOpen((open) => !open)}
             />
           </div>
         </header>

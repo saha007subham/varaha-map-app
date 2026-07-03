@@ -10,6 +10,8 @@ import {
   Maximize,
   Moon,
   Sun,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 export default function Toolbar({
@@ -24,6 +26,8 @@ export default function Toolbar({
   triggerFitView,
   isDarkTheme,
   toggleTheme,
+  sidebarOpen,
+  toggleSidebar,
 }) {
   return (
     <div
@@ -100,6 +104,23 @@ export default function Toolbar({
 
       {/* Action Buttons: Fit View, Save, Load, Clear */}
       <div className="flex flex-row flex-nowrap items-center gap-2 shrink-0">
+        <button
+          onClick={toggleSidebar}
+          className={`hidden max-[1300px]:inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all active:scale-95 shrink-0 cursor-pointer ${
+            isDarkTheme
+              ? "text-slate-300 hover:text-white bg-slate-900/40 hover:bg-slate-900/80 border border-slate-800/50 hover:border-slate-700/80"
+              : "text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 hover:border-slate-400"
+          }`}
+          title={sidebarOpen ? "Collapse sidebar" : "Open sidebar"}
+        >
+          {sidebarOpen ? (
+            <ChevronLeft className="w-3.5 h-3.5" />
+          ) : (
+            <ChevronRight className="w-3.5 h-3.5" />
+          )}
+          <span className="truncate">Sidebar</span>
+        </button>
+
         <button
           onClick={toggleTheme}
           className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all active:scale-95 shrink-0 cursor-pointer ${
