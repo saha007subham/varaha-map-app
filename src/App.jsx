@@ -274,6 +274,7 @@ export default function App() {
             addPolygonVertex={addPolygonVertex}
             focusedMarker={focusedMarker}
             isPolygonFinished={isPolygonFinished}
+            isDarkTheme={isDarkTheme}
             mapboxTokenStatus={mapboxTokenStatus}
             fitViewTrigger={fitViewTrigger}
           />

@@ -15,6 +15,7 @@ export default function MapCanvas({
   addPolygonVertex,
   focusedMarker,
   isPolygonFinished,
+  isDarkTheme,
   setMapboxTokenStatus,
   mapboxTokenStatus,
   fitViewTrigger,
@@ -383,29 +384,55 @@ export default function MapCanvas({
       <div ref={mapContainerRef} className="w-full h-full" />
 
       {/* Bottom-left Map HUD coordinates status bar */}
-      <div className="absolute bottom-4 left-4 z-10 flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-4 px-3.5 py-2.5 rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-900 shadow-xl pointer-events-none text-[10px] text-slate-400 font-mono">
+      <div
+        className={`absolute bottom-4 left-4 z-10 flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-4 px-3.5 py-2.5 rounded-xl backdrop-blur-md border shadow-xl pointer-events-none text-[10px] font-mono ${isDarkTheme ? "bg-slate-950/85 border-slate-900 text-slate-300" : "bg-white/85 border-slate-200 text-slate-700"}`}
+      >
         <div className="flex items-center space-x-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0"></span>
-          <span className="text-slate-600 uppercase font-semibold">Lat:</span>
-          <span className="text-slate-300 font-medium">
+          <span
+            className={`uppercase font-semibold ${isDarkTheme ? "text-slate-400" : "text-slate-600"}`}
+          >
+            Lat:
+          </span>
+          <span
+            className={`font-medium ${isDarkTheme ? "text-slate-100" : "text-slate-800"}`}
+          >
             {mapStatus.lat.toFixed(6)}
           </span>
         </div>
         <div className="flex items-center space-x-1.5">
-          <span className="text-slate-600 uppercase font-semibold">Lng:</span>
-          <span className="text-slate-300 font-medium">
+          <span
+            className={`uppercase font-semibold ${isDarkTheme ? "text-slate-400" : "text-slate-600"}`}
+          >
+            Lng:
+          </span>
+          <span
+            className={`font-medium ${isDarkTheme ? "text-slate-100" : "text-slate-800"}`}
+          >
             {mapStatus.lng.toFixed(6)}
           </span>
         </div>
-        <div className="hidden md:block w-px h-3.5 bg-slate-800"></div>
+        <div
+          className={`hidden md:block w-px h-3.5 ${isDarkTheme ? "bg-slate-800" : "bg-slate-300"}`}
+        ></div>
         <div className="flex items-center space-x-1.5">
-          <span className="text-slate-600 uppercase font-semibold">Zoom:</span>
-          <span className="text-slate-300 font-medium">
+          <span
+            className={`uppercase font-semibold ${isDarkTheme ? "text-slate-400" : "text-slate-600"}`}
+          >
+            Zoom:
+          </span>
+          <span
+            className={`font-medium ${isDarkTheme ? "text-slate-100" : "text-slate-800"}`}
+          >
             {mapStatus.zoom.toFixed(1)}
           </span>
         </div>
-        <div className="hidden md:block w-px h-3.5 bg-slate-800"></div>
-        <div className="flex items-center space-x-1.5 text-slate-500">
+        <div
+          className={`hidden md:block w-px h-3.5 ${isDarkTheme ? "bg-slate-800" : "bg-slate-300"}`}
+        ></div>
+        <div
+          className={`flex items-center space-x-1.5 ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}
+        >
           <Globe className="w-3 h-3 text-indigo-400/80" />
           <span>EPSG:3857</span>
         </div>
