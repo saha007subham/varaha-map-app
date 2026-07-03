@@ -1,77 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { Globe } from "lucide-react";
+import { getStyleDefinition } from "../utils/mapStyles";
 
 // Initialize Mapbox Access Token synchronously at file load time
 const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 mapboxgl.accessToken = token;
-
-/**
- * Dynamically resolves the Mapbox Vector or CartoDB Raster style block
- * based on theme (Light/Dark) and token configuration.
- *
- * @param {boolean} isDark - True if dark theme is active
- * @param {boolean} hasToken - True if VITE_MAPBOX_ACCESS_TOKEN exists
- * @returns {string|object} Mapbox style URL or custom Raster style definition
- */
-const getStyleDefinition = (isDark, hasToken) => {
-  if (hasToken) {
-    return isDark
-      ? "mapbox://styles/mapbox/streets-v12"
-      : "mapbox://styles/mapbox/streets-v12";
-  } else {
-    // Custom styled raster tiles for high-quality open-source fallback basemaps
-    return isDark
-      ? {
-          version: 8,
-          sources: {
-            "osm-tiles": {
-              type: "raster",
-              tiles: [
-                "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-                "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-                "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-              ],
-              tileSize: 256,
-              attribution: "© OpenStreetMap contributors, © CartoDB",
-            },
-          },
-          layers: [
-            {
-              id: "osm-tiles",
-              type: "raster",
-              source: "osm-tiles",
-              minzoom: 0,
-              maxzoom: 19,
-            },
-          ],
-        }
-      : {
-          version: 8,
-          sources: {
-            "osm-tiles": {
-              type: "raster",
-              tiles: [
-                "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-                "https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-                "https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-              ],
-              tileSize: 256,
-              attribution: "© OpenStreetMap contributors, © CartoDB",
-            },
-          },
-          layers: [
-            {
-              id: "osm-tiles",
-              type: "raster",
-              source: "osm-tiles",
-              minzoom: 0,
-              maxzoom: 19,
-            },
-          ],
-        };
-  }
-};
 
 export default function MapCanvas({
   mode,
@@ -85,8 +19,6 @@ export default function MapCanvas({
   mapboxTokenStatus,
   fitViewTrigger,
 }) {
-  console.log("Mapbox Token:", import.meta.env.VITE_MAPBOX_ACCESS_TOKEN);
-
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef({}); // Store active mapboxgl.Marker instances by ID
