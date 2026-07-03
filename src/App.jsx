@@ -2,7 +2,11 @@ import React, { useState, useEffect } from "react";
 import Sidebar from "./components/Sidebar";
 import Toolbar from "./components/Toolbar";
 import MapCanvas from "./components/MapCanvas";
-import { calculatePolygonArea } from "./utils/geoUtils";
+import {
+  calculatePolygonArea,
+  createGeoJSONFeatureCollection,
+  parseGeoJSONFeatureCollection,
+} from "./utils/geoUtils";
 import { CheckCircle, AlertCircle, Info, X, Moon, Sun } from "lucide-react";
 
 export default function App() {
@@ -227,6 +231,84 @@ export default function App() {
     }
   };
 
+  const exportGeoJSON = () => {
+    try {
+      const geojson = createGeoJSONFeatureCollection(
+        gisState.markers,
+        gisState.polygon,
+        isPolygonFinished,
+      );
+      const blob = new Blob([JSON.stringify(geojson, null, 2)], {
+        type: "application/geo+json",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "map.geojson";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      showToast("GeoJSON exported successfully", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to export GeoJSON", "error");
+    }
+  };
+
+  const importGeoJSON = async (file) => {
+    if (!file) return;
+
+    const validTypes = [".geojson", ".json"];
+    if (!validTypes.some((ext) => file.name.toLowerCase().endsWith(ext))) {
+      showToast("Please select a .geojson or .json file", "error");
+      return;
+    }
+
+    try {
+      const fileText = await file.text();
+      const parsed = JSON.parse(fileText);
+      const { markers: importedMarkers, polygon: importedPolygon } =
+        parseGeoJSONFeatureCollection(parsed);
+
+      if (importedMarkers.length === 0 && !importedPolygon) {
+        showToast(
+          "No supported Point or Polygon features found in the file.",
+          "error",
+        );
+        return;
+      }
+
+      setGisState((prev) => {
+        const nextMarkers = [...prev.markers];
+        importedMarkers.forEach((marker, idx) => {
+          nextMarkers.push({
+            id: `marker-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            name: marker.name || `Marker #${nextMarkers.length + idx + 1}`,
+            lat: marker.lat,
+            lng: marker.lng,
+          });
+        });
+
+        return {
+          ...prev,
+          markers: nextMarkers,
+          polygon: importedPolygon ?? prev.polygon,
+          mode: importedPolygon ? "idle" : prev.mode,
+        };
+      });
+
+      if (importedPolygon) {
+        setIsPolygonFinished(true);
+      }
+
+      showToast("GeoJSON imported successfully", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Invalid GeoJSON file. Please try another file.", "error");
+    }
+  };
+
   // Compute active geodesic polygon area using Turf.js in geoUtils.js
   const area =
     isPolygonFinished && gisState.polygon.length >= 3
@@ -269,6 +351,8 @@ export default function App() {
               clearAll={clearAll}
               saveData={saveData}
               loadData={loadData}
+              exportGeoJSON={exportGeoJSON}
+              importGeoJSON={importGeoJSON}
               mapboxTokenStatus={mapboxTokenStatus}
               triggerFitView={() => setFitViewTrigger((prev) => prev + 1)}
               isDarkTheme={isDarkTheme}

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import {
   MapPin,
   Hexagon,
@@ -12,6 +12,8 @@ import {
   Sun,
   ChevronLeft,
   ChevronRight,
+  Download,
+  Upload,
 } from "lucide-react";
 
 export default function Toolbar({
@@ -22,6 +24,8 @@ export default function Toolbar({
   clearAll,
   saveData,
   loadData,
+  exportGeoJSON,
+  importGeoJSON,
   mapboxTokenStatus,
   triggerFitView,
   isDarkTheme,
@@ -29,6 +33,19 @@ export default function Toolbar({
   sidebarOpen,
   toggleSidebar,
 }) {
+  const fileInputRef = useRef(null);
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    await importGeoJSON(file);
+    event.target.value = "";
+  };
+
   return (
     <div
       className={`flex flex-row flex-nowrap items-center justify-between gap-3 backdrop-blur-xl border rounded-2xl p-2.5 shadow-2xl overflow-x-auto w-full max-w-full scrollbar-none transition-colors duration-300 ${
@@ -164,6 +181,32 @@ export default function Toolbar({
         </button>
 
         <button
+          onClick={exportGeoJSON}
+          className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all active:scale-95 shrink-0 cursor-pointer ${
+            isDarkTheme
+              ? "text-slate-300 hover:text-white bg-slate-900/40 hover:bg-slate-900/80 border border-slate-800/50 hover:border-slate-700/80"
+              : "text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 hover:border-slate-400"
+          }`}
+          title="Export markers and polygon to GeoJSON"
+        >
+          <Download className="w-3.5 h-3.5 text-indigo-400" />
+          <span>Export</span>
+        </button>
+
+        <button
+          onClick={handleImportClick}
+          className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all active:scale-95 shrink-0 cursor-pointer ${
+            isDarkTheme
+              ? "text-slate-300 hover:text-white bg-slate-900/40 hover:bg-slate-900/80 border border-slate-800/50 hover:border-slate-700/80"
+              : "text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 hover:border-slate-400"
+          }`}
+          title="Import Point and Polygon features from GeoJSON"
+        >
+          <Upload className="w-3.5 h-3.5 text-indigo-400" />
+          <span>Import</span>
+        </button>
+
+        <button
           onClick={loadData}
           className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all active:scale-95 shrink-0 cursor-pointer ${
             isDarkTheme
@@ -176,6 +219,14 @@ export default function Toolbar({
           <span>Load</span>
         </button>
       </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".geojson,.json"
+        onChange={handleFileChange}
+        className="hidden"
+      />
 
       {/* Mapbox Token warning/status */}
       <div className="flex items-center gap-2 ml-auto shrink-0">
