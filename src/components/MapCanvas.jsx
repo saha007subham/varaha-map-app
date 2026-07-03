@@ -1,7 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
 import { Globe } from "lucide-react";
-import { getStyleDefinition } from "../utils/mapStyles";
+import { useMapInitialization } from "../hooks/useMapInitialization";
+import { useMarkers } from "../hooks/useMarkers";
+import { usePolygon } from "../hooks/usePolygon";
 
 // Initialize Mapbox Access Token synchronously at file load time
 const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
@@ -19,33 +21,28 @@ export default function MapCanvas({
   mapboxTokenStatus,
   fitViewTrigger,
 }) {
-  const mapContainerRef = useRef(null);
-  const mapRef = useRef(null);
-  const markersRef = useRef({}); // Store active mapboxgl.Marker instances by ID
-  const polygonMarkersRef = useRef([]); // Store temporary vertex dots
+  // Use custom hooks for map initialization, markers, and polygon
+  const { mapRef, mapContainerRef, mapLoaded, mapStatus, polygonSyncTrigger } =
+    useMapInitialization(
+      mode,
+      addMarker,
+      addPolygonVertex,
+      isDarkTheme,
+      isPolygonFinished,
+    );
 
-  const [mapLoaded, setMapLoaded] = useState(false);
-  const [polygonSyncTrigger, setPolygonSyncTrigger] = useState(0);
+  const { markersRef } = useMarkers(mapRef, mapLoaded, markers);
+  const { polygonMarkersRef } = usePolygon(
+    mapRef,
+    mapLoaded,
+    polygon,
+    isPolygonFinished,
+    polygonSyncTrigger,
+  );
 
-  // Bottom-left Map HUD coordinates status state
-  const [mapStatus, setMapStatus] = useState({
-    lat: 12.9716,
-    lng: 77.5946,
-    zoom: 11.0,
-  });
-
-  const addMarkerRef = useRef(addMarker);
-  const addPolygonVertexRef = useRef(addPolygonVertex);
+  // Keep refs for fitView logic
   const markersRefForFit = useRef(markers);
   const polygonRefForFit = useRef(polygon);
-
-  useEffect(() => {
-    addMarkerRef.current = addMarker;
-  }, [addMarker]);
-
-  useEffect(() => {
-    addPolygonVertexRef.current = addPolygonVertex;
-  }, [addPolygonVertex]);
 
   useEffect(() => {
     markersRefForFit.current = markers;
@@ -54,281 +51,6 @@ export default function MapCanvas({
   useEffect(() => {
     polygonRefForFit.current = polygon;
   }, [polygon]);
-
-  // Track map style to skip redundant setStyle calls
-  const currentStyleRef = useRef(getStyleDefinition(isDarkTheme, !!token));
-
-  // Create Map Instance exactly once on mount
-  useEffect(() => {
-    if (!mapContainerRef.current) return;
-
-    // Initialize using correct theme immediately on load
-    const initialStyle = getStyleDefinition(isDarkTheme, !!token);
-
-    const map = new mapboxgl.Map({
-      container: mapContainerRef.current,
-      style: initialStyle,
-      center: [77.5946, 12.9716], // Bangalore default center
-      zoom: 11,
-      attributionControl: true,
-    });
-
-    map.addControl(new mapboxgl.NavigationControl(), "bottom-right");
-    mapRef.current = map;
-
-    // Track map coordinates and zoom levels
-    const updateStatus = () => {
-      const center = map.getCenter();
-      const zoom = map.getZoom();
-      setMapStatus({
-        lat: center.lat,
-        lng: center.lng,
-        zoom: zoom,
-      });
-    };
-
-    map.on("move", updateStatus);
-    map.on("zoom", updateStatus);
-
-    map.on("load", () => {
-      setMapLoaded(true);
-    });
-
-    // Re-bind GeoJSON polygon sources & layers dynamically on style load events.
-    // (setStyle drops custom style layers & sources from the map canvas structure)
-    map.on("style.load", () => {
-      if (!map.getSource("polygon-data")) {
-        map.addSource("polygon-data", {
-          type: "geojson",
-          data: {
-            type: "FeatureCollection",
-            features: [],
-          },
-        });
-
-        // Fill layer for closed Polygon
-        map.addLayer({
-          id: "polygon-fill",
-          type: "fill",
-          source: "polygon-data",
-          paint: {
-            "fill-color": "#818cf8",
-            "fill-opacity": 0.2,
-          },
-          filter: ["==", "$type", "Polygon"],
-        });
-
-        // Border outline
-        map.addLayer({
-          id: "polygon-stroke",
-          type: "line",
-          source: "polygon-data",
-          paint: {
-            "line-color": "#6366f1",
-            "line-width": 3,
-          },
-        });
-      }
-
-      // Signal the polygon sync effect to re-inject coordinates
-      setPolygonSyncTrigger((prev) => prev + 1);
-    });
-
-    // Click handler for interaction modes
-    map.on("click", (e) => {
-      const { lng, lat } = e.lngLat;
-
-      window.__mapModeRef = window.__mapModeRef || "idle";
-
-      if (window.__mapModeRef === "add-marker") {
-        addMarkerRef.current(lng, lat);
-      } else if (window.__mapModeRef === "draw-polygon") {
-        addPolygonVertexRef.current([lng, lat]);
-      }
-    });
-
-    // Watch for size adjustments
-    const resizeObserver = new ResizeObserver(() => {
-      map.resize();
-    });
-    resizeObserver.observe(mapContainerRef.current);
-
-    return () => {
-      resizeObserver.disconnect();
-      map.off("move", updateStatus);
-      map.off("zoom", updateStatus);
-      map.remove();
-      mapRef.current = null;
-    };
-  }, []);
-
-  // Update existing map style using setStyle() when theme state changes
-  useEffect(() => {
-    if (!mapRef.current || !mapLoaded) return;
-
-    const targetStyle = getStyleDefinition(isDarkTheme, !!token);
-
-    // Compare style configurations to skip redundant updates
-    const hasStyleChanged =
-      typeof targetStyle === "string"
-        ? currentStyleRef.current !== targetStyle
-        : JSON.stringify(currentStyleRef.current) !==
-          JSON.stringify(targetStyle);
-
-    if (hasStyleChanged) {
-      mapRef.current.setStyle(targetStyle);
-      currentStyleRef.current = targetStyle;
-    }
-  }, [isDarkTheme, mapLoaded]);
-
-  // Keep interaction mode reference updated for the click handler
-  useEffect(() => {
-    window.__mapModeRef = mode;
-
-    if (mapRef.current) {
-      const canvas = mapRef.current.getCanvas();
-      if (mode === "add-marker") {
-        canvas.style.cursor = "pointer"; // pointer cursor for adding markers
-      } else if (mode === "draw-polygon") {
-        canvas.style.cursor = "crosshair"; // crosshair cursor for drawing polygons
-      } else {
-        canvas.style.cursor = "";
-      }
-    }
-  }, [mode]);
-
-  // Disable Mapbox double-click zoom while drawing an active polygon
-  useEffect(() => {
-    if (!mapRef.current) return;
-    if (mode === "draw-polygon" && !isPolygonFinished) {
-      mapRef.current.doubleClickZoom.disable();
-    } else {
-      mapRef.current.doubleClickZoom.enable();
-    }
-  }, [mode, isPolygonFinished]);
-
-  // Sync Markers Array and number them dynamically
-  useEffect(() => {
-    if (!mapRef.current || !mapLoaded) return;
-
-    const currentMarkers = { ...markersRef.current };
-    const newMarkers = {};
-
-    markers.forEach((m, index) => {
-      const markerNumber = index + 1;
-
-      if (currentMarkers[m.id]) {
-        // Marker exists, update number inside the custom DOM node
-        const markerInstance = currentMarkers[m.id];
-        const el = markerInstance.getElement();
-        const numEl = el.querySelector(".marker-number");
-        if (numEl) {
-          numEl.textContent = markerNumber;
-        }
-
-        newMarkers[m.id] = markerInstance;
-        delete currentMarkers[m.id];
-      } else {
-        // Create custom HTML marker element
-        const el = document.createElement("div");
-        el.className = "custom-marker";
-        el.innerHTML = `
-          <div class="relative flex items-center justify-center">
-            <div class="absolute -top-1 w-6 h-6 bg-emerald-500/30 rounded-full animate-ping opacity-75"></div>
-            <div class="relative w-7 h-7 rounded-full bg-slate-950 border-2 border-emerald-400 flex items-center justify-center shadow-lg shadow-black/50">
-              <span class="marker-number text-[11px] font-bold text-emerald-400">${markerNumber}</span>
-            </div>
-          </div>
-        `;
-
-        // Create Popup
-        const popup = new mapboxgl.Popup({ offset: 12 }).setHTML(`
-          <div class="text-left font-sans">
-            <p class="font-bold text-sm text-slate-100 mb-1">${m.name}</p>
-            <div class="space-y-0.5 text-[10px] text-slate-400 font-mono">
-              <p>Lat: ${m.lat.toFixed(6)}</p>
-              <p>Lng: ${m.lng.toFixed(6)}</p>
-            </div>
-          </div>
-        `);
-
-        // Mount Marker
-        const markerInstance = new mapboxgl.Marker({ element: el })
-          .setLngLat([m.lng, m.lat])
-          .setPopup(popup)
-          .addTo(mapRef.current);
-
-        newMarkers[m.id] = markerInstance;
-      }
-    });
-
-    // Remove obsolete markers from map
-    Object.keys(currentMarkers).forEach((id) => {
-      currentMarkers[id].remove();
-    });
-
-    markersRef.current = newMarkers;
-  }, [markers, mapLoaded]);
-
-  // Sync Polygon Layer and Draw vertex dots
-  useEffect(() => {
-    if (!mapRef.current || !mapLoaded) return;
-
-    const source = mapRef.current.getSource("polygon-data");
-    if (source) {
-      const features = [];
-
-      if (polygon.length > 0) {
-        if (isPolygonFinished && polygon.length >= 3) {
-          // Closed polygon loop
-          const closedCoords = [...polygon, polygon[0]];
-          features.push({
-            type: "Feature",
-            geometry: {
-              type: "Polygon",
-              coordinates: [closedCoords],
-            },
-            properties: {},
-          });
-        } else {
-          // Open line string while actively drawing
-          features.push({
-            type: "Feature",
-            geometry: {
-              type: "LineString",
-              coordinates: polygon,
-            },
-            properties: {},
-          });
-        }
-      }
-
-      source.setData({
-        type: "FeatureCollection",
-        features,
-      });
-    }
-
-    // Draw vertex corner dots on the map
-    // Clear old vertex markers
-    polygonMarkersRef.current.forEach((marker) => marker.remove());
-    polygonMarkersRef.current = [];
-
-    // Place new vertex dots on map (only if we are still drawing/unfinished)
-    if (!isPolygonFinished) {
-      polygon.forEach((coord, idx) => {
-        const el = document.createElement("div");
-        el.className =
-          "w-3 h-3 rounded-full border-2 bg-white border-indigo-600 shadow-md cursor-pointer transition-transform hover:scale-125";
-
-        const markerInstance = new mapboxgl.Marker({ element: el })
-          .setLngLat(coord)
-          .addTo(mapRef.current);
-
-        polygonMarkersRef.current.push(markerInstance);
-      });
-    }
-  }, [polygon, isPolygonFinished, mapLoaded, polygonSyncTrigger]);
 
   // Fly to target marker when focused
   useEffect(() => {
