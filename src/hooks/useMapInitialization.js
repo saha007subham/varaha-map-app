@@ -33,9 +33,10 @@ export function useMapInitialization(
     zoom: 11.0,
   });
 
-  // Refs to keep callbacks current
+  // Refs to keep callbacks and mode current
   const addMarkerRef = useRef(addMarker);
   const addPolygonVertexRef = useRef(addPolygonVertex);
+  const modeRef = useRef(mode);
 
   useEffect(() => {
     addMarkerRef.current = addMarker;
@@ -44,6 +45,10 @@ export function useMapInitialization(
   useEffect(() => {
     addPolygonVertexRef.current = addPolygonVertex;
   }, [addPolygonVertex]);
+
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
 
   // Create Map Instance exactly once on mount
   useEffect(() => {
@@ -119,11 +124,10 @@ export function useMapInitialization(
     // Click handler for interaction modes
     map.on("click", (e) => {
       const { lng, lat } = e.lngLat;
-      window.__mapModeRef = window.__mapModeRef || "idle";
 
-      if (window.__mapModeRef === "add-marker") {
+      if (modeRef.current === "add-marker") {
         addMarkerRef.current(lng, lat);
-      } else if (window.__mapModeRef === "draw-polygon") {
+      } else if (modeRef.current === "draw-polygon") {
         addPolygonVertexRef.current([lng, lat]);
       }
     });
@@ -162,8 +166,6 @@ export function useMapInitialization(
 
   // Update interaction mode
   useEffect(() => {
-    window.__mapModeRef = mode;
-
     if (mapRef.current) {
       const canvas = mapRef.current.getCanvas();
       if (mode === "add-marker") {
