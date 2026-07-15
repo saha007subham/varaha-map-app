@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Download,
   Upload,
+  Compass,
 } from "lucide-react";
 
 export default function Toolbar({
@@ -28,6 +29,7 @@ export default function Toolbar({
   importGeoJSON,
   mapboxTokenStatus,
   triggerFitView,
+  onLocateMe,
   isDarkTheme,
   toggleTheme,
   sidebarOpen,
@@ -154,6 +156,19 @@ export default function Toolbar({
           )}
           <span>{isDarkTheme ? "Dark" : "Light"}</span>
         </button>
+        <button
+          onClick={onLocateMe}
+          className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all active:scale-95 shrink-0 cursor-pointer ${
+            isDarkTheme
+              ? "text-slate-300 hover:text-white bg-slate-900/40 hover:bg-slate-900/80 border border-slate-800/50 hover:border-slate-700/80"
+              : "text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 hover:border-slate-400"
+          }`}
+          title="Zoom to your current location"
+        >
+          <Compass className="w-3.5 h-3.5 text-indigo-400" />
+          <span>Locate Me</span>
+        </button>
+
         <button
           onClick={triggerFitView}
           className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all active:scale-95 shrink-0 cursor-pointer ${

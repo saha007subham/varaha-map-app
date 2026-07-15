@@ -312,6 +312,84 @@ export default function App() {
     }
   };
 
+  // Geolocation "Locate Me" handler
+  const locateMe = () => {
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      showToast("Geolocation is not supported by your browser", "error");
+      return;
+    }
+
+    showToast("Acquiring your location...", "info");
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const locationMarkerId = "marker-current-location";
+
+        setGisState((prev) => {
+          // Remove existing current location marker if it exists, to avoid duplicates
+          const filteredMarkers = prev.markers.filter(
+            (m) => m.id !== locationMarkerId
+          );
+
+          const newMarker = {
+            id: locationMarkerId,
+            name: "My Location",
+            lat: latitude,
+            lng: longitude,
+          };
+
+          // Re-index remaining markers and place "My Location" at the end
+          const updatedMarkers = [...filteredMarkers, newMarker];
+          let standardMarkerCount = 0;
+          const reindexedMarkers = updatedMarkers.map((m) => {
+            if (m.id === locationMarkerId) {
+              return m;
+            }
+            standardMarkerCount++;
+            return {
+              ...m,
+              name: `Marker #${standardMarkerCount}`,
+            };
+          });
+
+          return {
+            ...prev,
+            markers: reindexedMarkers,
+          };
+        });
+
+        const newLocationMarker = {
+          id: locationMarkerId,
+          name: "My Location",
+          lat: latitude,
+          lng: longitude,
+        };
+
+        showToast("Location found! Centering map...", "success");
+        setFocusedMarker(newLocationMarker);
+        setTimeout(() => setFocusedMarker(null), 1000);
+      },
+      (error) => {
+        console.error("Geolocation error:", error);
+        let errorMsg = "Failed to acquire location";
+        if (error.code === error.PERMISSION_DENIED) {
+          errorMsg = "Location permission denied by user";
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          errorMsg = "Location position unavailable";
+        } else if (error.code === error.TIMEOUT) {
+          errorMsg = "Location request timed out";
+        }
+        showToast(errorMsg, "error");
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 8000,
+        maximumAge: 0,
+      }
+    );
+  };
+
   // Compute active geodesic polygon area using Turf.js in geoUtils.js
   const area =
     isPolygonFinished && gisState.polygon.length >= 3
@@ -358,6 +436,7 @@ export default function App() {
               importGeoJSON={importGeoJSON}
               mapboxTokenStatus={mapboxTokenStatus}
               triggerFitView={() => setFitViewTrigger((prev) => prev + 1)}
+              onLocateMe={locateMe}
               isDarkTheme={isDarkTheme}
               toggleTheme={() =>
                 setTheme((prev) => (prev === "dark" ? "light" : "dark"))

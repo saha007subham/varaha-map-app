@@ -22,8 +22,9 @@ export function useMarkers(mapRef, mapLoaded, markers) {
       const markerNumber = index + 1;
 
       if (currentMarkers[m.id]) {
-        // Marker exists, update number
+        // Marker exists, update position and number
         const markerInstance = currentMarkers[m.id];
+        markerInstance.setLngLat([m.lng, m.lat]);
         updateMarkerNumber(markerInstance, markerNumber);
 
         newMarkers[m.id] = markerInstance;
